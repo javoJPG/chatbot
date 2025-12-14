@@ -29,7 +29,7 @@ if (!$text) $text = "hola";
 // --- CONFIG (solo prueba) ---
 $GREENAPI_BASE = "https://7105.api.greenapi.com";
 $GREENAPI_ID   = "7105422392";
-$GREENAPI_TOKEN= "b78d7825622b45ecb0d109b91cfdb360fb995c424a1b493b8b";
+$GREENAPI_TOKEN= "3f60c419723d4dc69462953c4ce9e5b5eaa89535418d4cfaa8";
 
 // Responder
 sendGreenApiMessage($GREENAPI_BASE, $GREENAPI_ID, $GREENAPI_TOKEN, $chatId, "Bot activo ✅\nDijiste: ".$text);
