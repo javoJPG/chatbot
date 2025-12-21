@@ -1,0 +1,19 @@
+# Habilitar rewrite engine
+RewriteEngine On
+
+# Redirigir todas las peticiones a bot_hibrido.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ bot_hibrido.php [QSA,L]
+
+# Configuración de seguridad
+<FilesMatch "\.(env|log|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Configurar PHP
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value memory_limit 256M
+

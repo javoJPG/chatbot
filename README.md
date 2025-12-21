@@ -64,9 +64,35 @@ docker run -d \
 docker run -d -p 80:80 --env-file .env chatbot
 ```
 
+## 🚂 Railway Deployment
+
+### Configuración en Railway:
+
+1. **Conecta tu repositorio** a Railway
+2. **Configura las variables de entorno** en Railway:
+   - Ve a tu proyecto → Variables
+   - Agrega todas las variables del archivo `.env.example`:
+     - `GREEN_ID`
+     - `GREEN_TOKEN`
+     - `GREEN_API_URL`
+     - `OPENAI_API_KEY`
+     - `OPENAI_MODEL` (opcional)
+     - `VISION_MODEL` (opcional)
+     - `MAX_DAYS_SIN_PAYMENT` (opcional)
+
+3. **Railway detectará automáticamente el Dockerfile**
+4. **El puerto se configura automáticamente** (Railway usa la variable `PORT`)
+
+### Si tienes problemas:
+
+- Asegúrate de que el archivo se llame `Dockerfile` (con D mayúscula)
+- Verifica que todas las variables de entorno estén configuradas
+- Revisa los logs en Railway para ver errores específicos
+
 ## 📝 Notas
 
 - El archivo `.env` está en `.gitignore` por seguridad
 - No subas tus credenciales al repositorio
 - Usa `.env.example` como plantilla para otros desarrolladores
+- En Railway, configura las variables de entorno en el panel, no uses archivo `.env`
 
