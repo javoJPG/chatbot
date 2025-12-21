@@ -1,0 +1,15 @@
+# Archivo de variables de entorno (contiene credenciales sensibles)
+.env
+
+# Carpetas de datos generados
+chat_memory/
+data/
+
+# Archivos temporales
+*.log
+*.tmp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
