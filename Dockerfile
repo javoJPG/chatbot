@@ -1,5 +1,9 @@
 FROM php:8.2-apache
 
+# Deshabilitar MPMs no necesarios y asegurar que solo prefork esté activo
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true
+RUN a2enmod mpm_prefork
+
 # Habilitar mod_rewrite para Apache
 RUN a2enmod rewrite
 
