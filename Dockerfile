@@ -1,7 +1,15 @@
 FROM php:8.2-apache
 
-# Deshabilitar MPMs no necesarios y asegurar que solo prefork esté activo
-RUN a2dismod mpm_event mpm_worker 2>/dev/null || true
+# Deshabilitar todos los MPMs explícitamente
+RUN set -eux; \
+    a2dismod mpm_event 2>/dev/null || true; \
+    a2dismod mpm_worker 2>/dev/null || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_event.load 2>/dev/null || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_worker.load 2>/dev/null || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_event.conf 2>/dev/null || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_worker.conf 2>/dev/null || true
+
+# Habilitar solo mpm_prefork (necesario para PHP)
 RUN a2enmod mpm_prefork
 
 # Habilitar mod_rewrite para Apache
