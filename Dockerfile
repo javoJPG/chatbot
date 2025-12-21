@@ -3,7 +3,7 @@ FROM php:8.2-apache
 # Habilitar mod_rewrite para Apache
 RUN a2enmod rewrite
 
-# Copiar archivos de la aplicación
+# Copiar archivos de la aplicaciÃ³n
 COPY . /var/www/html/
 
 # Configurar permisos
