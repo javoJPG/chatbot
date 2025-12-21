@@ -168,6 +168,9 @@ function updatePaymentStatus($chatId,$status){
 function detectHolderQuery($textLower){
     if(preg_match('/a\s*(que|qué)\s*nombre/u', $textLower)) return true;
     if(preg_match('/nombre\s*(esta|est[aá])/u', $textLower)) return true;
+    if(preg_match('/a\s*(que|qué)\s*cuenta/u', $textLower)) return true;
+    if(preg_match('/cuenta\s*(esta|est[aá]|conectada)/u', $textLower)) return true;
+    if(preg_match('/(que|qué)\s*banco/u', $textLower)) return true;
     return str_contains($textLower,'a nombre') ||
            str_contains($textLower,'titular') ||
            str_contains($textLower,'de quien') ||
@@ -175,7 +178,10 @@ function detectHolderQuery($textLower){
            str_contains($textLower,'quien es el dueno') ||
            str_contains($textLower,'quien es el dueño') ||
            str_contains($textLower,'quien es el propietario') ||
-           str_contains($textLower,'propietario');
+           str_contains($textLower,'propietario') ||
+           str_contains($textLower,'cuenta de banco') ||
+           str_contains($textLower,'cuenta bancaria') ||
+           str_contains($textLower,'conectada');
 }
 
 function buildHolderMessage($textLower){
