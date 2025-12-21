@@ -51,23 +51,22 @@ if (empty($idInstance) || empty($apiTokenInstance) || empty($apiUrlBase)) {
 
 // ================== DATOS DEL NEGOCIO ==================
 $PLANS = [
-  ['emoji'=>'🔥',  'name'=>'Netflix original (1 pantalla, 1 mes)', 'price'=>8500],
-  ['emoji'=>'❤‍🔥','name'=>'Netflix + Disney Premium (1 mes)', 'price'=>14900],
-  ['emoji'=>'🎟',  'name'=>'Netflix + prime video (1 mes)', 'price'=>15000],
-  ['emoji'=>'🫰',  'name'=>'Netflix + HBO Max (1 mes)', 'price'=>15000],
-  ['emoji'=>'🤯',  'name'=>'Netflix + Crunchyroll (1 mes)', 'price'=>15000],
-  ['emoji'=>'💥',  'name'=>'Netflix + Paramount (1 mes)', 'price'=>15000],
-  ['emoji'=>'✅',  'name'=>'Netflix + hbo max+ Amazon (1 mes)', 'price'=>19900],
-  ['emoji'=>'✅',  'name'=>'Netflix + disney premium+ HBO Max (1 mes)', 'price'=>21000],
-  ['emoji'=>'✅',  'name'=>'Netflix + Disney Premium + Amazon + HBO Max (1 mes)', 'price'=>26000],
-  ['emoji'=>'💥',  'name'=>'Netflix 4 dias', 'price'=>5900],
+  ['emoji'=>'🔥',  'name'=>'Netflix original (1 pantalla, 1 mes)', 'price'=>9900],
+  ['emoji'=>'❤‍🔥','name'=>'Netflix + Disney Premium (1 mes)', 'price'=>15900],
+  ['emoji'=>'🎟',  'name'=>'Netflix + prime video (1 mes)', 'price'=>15900],
+  ['emoji'=>'🫰',  'name'=>'Netflix + HBO Max (1 mes)', 'price'=>15900],
+  ['emoji'=>'🤯',  'name'=>'Netflix + Crunchyroll (1 mes)', 'price'=>15900],
+  ['emoji'=>'💥',  'name'=>'Netflix + Paramount (1 mes)', 'price'=>15900],
+  ['emoji'=>'✅',  'name'=>'Netflix + hbo max+ Amazon (1 mes)', 'price'=>20900],
+  ['emoji'=>'✅',  'name'=>'Netflix + disney premium+ HBO Max (1 mes)', 'price'=>21900],
+  ['emoji'=>'✅',  'name'=>'Netflix + Disney Premium + Amazon + HBO Max (1 mes)', 'price'=>26900],
 ];
 
 // Servicios individuales (para IA y combos personalizados)
 $SERVICES = [
 'netflix' => [
         'name' => 'Netflix (1 pantalla)',
-        'price' => 8500,
+        'price' => 9900,
         'keywords' => ['netflix','nflx','netflis','netfli','netlix','netfliix','netflics']
     ],
     'disney' => [
@@ -97,19 +96,19 @@ $SERVICES = [
     ]
 ];
 
-$PAYMENT_INFO = "💳 *MEDIOS DE PAGO*\n\n🩵 *NEQUI:* 3044713746\n🏦 *DAVIPLATA:* 3005017702\n🏦 *Ahorros Bancolombia:* 85998265768\n\n📍 *Importante:* envía *captura del pago* por aquí\nnumero de whatsapp de respaldo 3044713746.";
+$PAYMENT_INFO = "💳 *MEDIOS DE PAGO*\n\n🩵 *NEQUI:* 3207702142 (Hernan Ceballos)\n🏦 *DAVIPLATA:* 3218474247 (Johan Rondon)\n🏦 *Ahorros Bancolombia:* 05900012119 (Johan Javier Rondon)\n\n📍 *Importante:* envía captura del pago por aquí";
 $ALLOWED_ACCOUNTS = [
-    ['method'=>'NEQUI','number'=>'3044713746'],
-    ['method'=>'DAVIPLATA','number'=>'3005017702'],
-    ['method'=>'BANCOLOMBIA','number'=>'85998265768'],
+    ['method'=>'NEQUI','number'=>'3207702142'],
+    ['method'=>'DAVIPLATA','number'=>'3218474247'],
+    ['method'=>'BANCOLOMBIA','number'=>'05900012119'],
 ];
-$MAX_DAYS_SINCE_PAYMENT = (int) (getenv('MAX_DAYS_SINCE_PAYMENT') ?: 1);
+$MAX_DAYS_SINCE_PAYMENT = (int) (getenv('MAX_DAYS_SIN_PAYMENT') ?: 1);
 $ACCOUNT_HOLDERS = [
-    'NEQUI' => 'Esteici Bocanegra',
-    'DAVIPLATA' => 'Edison Rondón',
-    'BANCOLOMBIA' => 'Jhon Edison Rondon Orozco',
+    'NEQUI' => 'Hernan Ceballos',
+    'DAVIPLATA' => 'Johan Rondon',
+    'BANCOLOMBIA' => 'Johan Javier Rondon',
 ];
-$DELIVERY_INFO = "✅ Recibí tu comprobante. El servicio se entrega directamente por nuestro otro número.\n\nEscríbeme a ese WhatsApp para reclamar tu pedido, envíame la captura del pago y tu nombre, porfa.\n\nWhatsApp de entregas 👉 ‪+57 304 471 3746‬\nPresiona aquí  ⬇🦋\nhttps://wa.me/573044713746";
+$DELIVERY_INFO = "✅ Recibí tu comprobante. El servicio se entrega directamente por nuestro otro número.\n\nEscríbeme a ese WhatsApp para reclamar tu pedido, envíame la captura del pago y tu nombre, porfa.\n\nWhatsApp de entregas 👉 ‪+57 324 493 0475‬\nPresiona aquí  ⬇🦋\nhttps://wa.me/573244930475";
 
 // Carpeta para historial simple de chat (contexto para la IA)
 $HISTORY_DIR = __DIR__ . '/chat_memory';
@@ -514,11 +513,9 @@ function accountMatchesAllowed($detected,$allowed){
 function daviplataNameLooksOk($holder){
     $h = normalizeNameSimple($holder);
     if($h==='') return false;
-    $hasJhon = str_contains($h,'jhon');
+    $hasJohan = str_contains($h,'johan');
     $hasRondon = str_contains($h,'rondon');
-    $hasEdison = str_contains($h,'edison');
-    $hasOroz = str_contains($h,'oroz') || str_contains($h,'oro');
-    return $hasJhon && $hasRondon && ($hasEdison || $hasOroz);
+    return $hasJohan && $hasRondon;
 }
 
 function validatePaymentByAccountAndDate($extracted,$ALLOWED_ACCOUNTS,$MAX_DAYS_SINCE_PAYMENT){
@@ -548,7 +545,7 @@ function validatePaymentByAccountAndDate($extracted,$ALLOWED_ACCOUNTS,$MAX_DAYS_
     if($matched && strtoupper($matched['method'])==='DAVIPLATA'){
         $holder = $extracted['holder_name'] ?? '';
         if(!daviplataNameLooksOk($holder)){
-            $reasons[]='El *titular Daviplata* no coincide con "Jhon Edison Rondón Orozco".';
+            $reasons[]='El *titular Daviplata* no coincide con "Johan Rondon".';
         }
     }
     $skipDateCheck = $matched && strtoupper($matched['method']) === 'BANCOLOMBIA';
@@ -677,7 +674,7 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     3. Si das un precio, cierra con: '¿Te paso medios de pago?'
     4. Si el usuario dice 'SÍ', 'Claro', 'Dale' (confirmando pago) o pide los datos: ENVÍA LOS DATOS DE PAGO que tienes arriba. Diles que envíen el comprobante.
     5. Garantía 30 días.
-        3. si el usuario pregunta por los propietarios de las cuentas de nequi, daviplata y bancolombia, responde con los datos de nequi(esteici bocanegra), daviplata(edison rondon) o bancolombia(jhon edison rondon orozco). IMPORTANTE RESPONDER CON LOS DATOS CORRECTOS.
+        3. si el usuario pregunta por los propietarios de las cuentas de nequi, daviplata y bancolombia, responde con los datos de nequi(hernan ceballos), daviplata(johan rondon) o bancolombia(johan javier rondon). IMPORTANTE RESPONDER CON LOS DATOS CORRECTOS.
     ";
 
     $messages = [
