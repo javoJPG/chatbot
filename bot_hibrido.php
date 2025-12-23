@@ -658,7 +658,7 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     // Limpiamos los datos de pago para el prompt (sin asteriscos excesivos para que la IA los lea bien)
     $paymentPrompt = str_replace('*', '', $PAYMENT_INFO);
 
-    $systemPrompt = "Eres un asesor de ventas colombiano directo y eficiente. Vendes cuentas de streaming.
+    $systemPrompt = "Eres un asesor de ventas colombiano amigable, empático y profesional. Vendes cuentas de streaming. Tu objetivo es ayudar a los clientes de manera genuina y resolver sus dudas.
     
     TUS PRODUCTOS Y PRECIOS UNITARIOS:
     {$contextIndividuals}
@@ -675,13 +675,28 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
        - Si incluye NETFLIX: Precio FULL (sin descuento).
        - Si NO incluye Netflix: Aplica 30% de DESCUENTO.
     
+    ESTILO Y EMPATÍA:
+    1. Sé EMPÁTICO: Si el cliente tiene dudas, preocupaciones o problemas, muéstrate comprensivo.
+    2. Sé NATURAL: Habla como un colombiano real, usa expresiones coloquiales cuando sea apropiado.
+    3. Sé ÚTIL: Responde a preguntas poco comunes con información relevante, incluso si no están directamente relacionadas con ventas.
+    4. Sé PACIENTE: Si el cliente no entiende algo, explícaselo de manera clara y sencilla.
+    5. Sé POSITIVO: Mantén un tono amigable y optimista, pero sin ser exagerado.
+    
     REGLAS DE RESPUESTA:
-    1. NO SALUDES con preguntas tipo '¿En qué puedo ayudarte?'. Si el cliente no ha pedido planes, ofrécelos de una.
-    2. Sé MUY BREVE.
+    1. NO SALUDES con preguntas genéricas tipo '¿En qué puedo ayudarte?'. Si el cliente no ha pedido planes, ofrécelos directamente.
+    2. Sé CONCISO pero no robótico. Puedes ser breve pero mantén la calidez humana.
     3. Si das un precio, cierra con: '¿Te paso medios de pago?'
     4. Si el usuario dice 'SÍ', 'Claro', 'Dale' (confirmando pago) o pide los datos: ENVÍA LOS DATOS DE PAGO que tienes arriba. Diles que envíen el comprobante.
-    5. Garantía 30 días.
-        3. si el usuario pregunta por los propietarios de las cuentas de nequi, daviplata y bancolombia, responde con los datos de nequi(hernan ceballos), daviplata(johan rondon) o bancolombia(johan javier rondon). IMPORTANTE RESPONDER CON LOS DATOS CORRECTOS.
+    5. Garantía 30 días - menciónala cuando sea relevante.
+    6. Si el usuario pregunta por los propietarios de las cuentas de nequi, daviplata y bancolombia, responde con los datos de nequi(hernan ceballos), daviplata(johan rondon) o bancolombia(johan javier rondon). IMPORTANTE RESPONDER CON LOS DATOS CORRECTOS.
+    
+    MANEJO DE SITUACIONES POCO COMUNES:
+    - Si preguntan sobre problemas técnicos: Ofrece ayuda básica y sugiere contactar el soporte del servicio.
+    - Si preguntan sobre garantías o reembolsos: Explica la política de 30 días de manera clara y empática.
+    - Si preguntan sobre disponibilidad: Sé honesto sobre lo que tienes disponible.
+    - Si hacen chistes o comentarios casuales: Responde de manera amigable pero vuelve al tema cuando sea apropiado.
+    - Si están frustrados o molestos: Muestra empatía, disculpa si es necesario, y ofrece soluciones concretas.
+    - Si preguntan cosas fuera de tu negocio: Responde brevemente y amablemente, luego redirige al tema de streaming si es posible.
     ";
 
     $messages = [
@@ -689,8 +704,8 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
         'messages' => [
             ['role' => 'system', 'content' => $systemPrompt],
         ],
-        'max_tokens' => 300, // Un poco más de espacio por si tiene que enviar los datos de pago
-        'temperature' => 0.4
+        'max_tokens' => 400, // Más espacio para respuestas empáticas y completas
+        'temperature' => 0.6 // Más creatividad para respuestas naturales y empáticas
     ];
 
     $recentHistory = array_slice($chatHistory, -8);
@@ -790,6 +805,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     saveChatHistory($chatId,$history);
 
     if(detectHolderQuery($textLower)){
+        sleep(rand(2, 4)); // Pausa natural antes de responder
         $holderMsg = buildHolderMessage($textLower);
         sendAndRemember($chatId,$holderMsg,$history);
         return;
@@ -824,10 +840,13 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
                 $saludo = "¡Buenas noches! Soy Jhon, tu asesor de streaming. Estos son los planes 👇\n\n";
             }
             $prefix = $saludo;
+            sleep(rand(2, 3)); // Pausa antes de enviar planes
             sendAndRemember($chatId, $prefix, $history);
+            sleep(1); // Pausa entre mensajes
             $plansText = getPlansText($PLANS);
             sendAndRemember($chatId, str_replace("🔹 *COMBOS DISPONIBLES*\n\n", "", $plansText), $history); 
         } else {
+            sleep(rand(2, 3)); // Pausa natural
             sendAndRemember($chatId, "¡Hola de nuevo! Ya te compartí los planes hace un momento. Dime si quieres que te los reenvíe o si te aparto alguno.", $history);
         }
         exit;
@@ -837,6 +856,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     foreach ($PLANS as $plan) {
         // Si el mensaje contiene el emoji del plan
         if (strpos($textMessage, $plan['emoji']) !== false) {
+            sleep(rand(2, 4)); // Pausa antes de confirmar plan
             $msg = "Excelente elección: {$plan['emoji']} *{$plan['name']}* por $" . number_format($plan['price'], 0, ',', '.') . ".\n\n¿Te paso los medios de pago?";
             sendAndRemember($chatId, $msg, $history);
             exit;
@@ -848,6 +868,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     if($adHocCombo){
         $comboName = implode(' + ', $adHocCombo['services']);
         $final = formatCop($adHocCombo['final']);
+        sleep(rand(3, 5)); // Pausa antes de calcular combo personalizado
         $msg = $adHocCombo['discountPercent'] > 0
             ? "Perfecto, {$comboName} queda en {$final} (precio final con 30% de descuento). ¿Te paso los medios de pago?"
             : "Perfecto, {$comboName} queda en {$final}. ¿Te paso los medios de pago?";
@@ -888,8 +909,8 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
         $indivStr .= "- {$svc['name']}: ".formatCop($svc['price'])."\n";
     }
 
-    // Pausa para simular que "está escribiendo"
-    sleep(3);
+    // Pausa para simular que "está escribiendo" (más tiempo para parecer más natural)
+    sleep(rand(4, 7));
 
     // Obtener respuesta de GPT
     $aiReply = getAIResponse($textMessage, $contextStr, $indivStr, $history);
