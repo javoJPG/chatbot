@@ -109,7 +109,7 @@ $ACCOUNT_HOLDERS = [
     'DAVIPLATA' => 'Johan Rondon',
     'BANCOLOMBIA' => 'Johan Javier Rondon',
 ];
-$DELIVERY_INFO = "✅ Recibí tu comprobante. El servicio se entrega directamente por nuestro otro número.\n\nEscríbeme a ese WhatsApp para reclamar tu pedido, envíame la captura del pago y tu nombre, porfa.\n\nWhatsApp de entregas 👉 ‪+57 324 493 0475‬\nPresiona aquí  ⬇🦋\nhttps://wa.me/573244930475";
+$DELIVERY_INFO = "✅ ¡Perfecto! Tu comprobante fue validado correctamente.\n\n📦 Para recibir tu servicio, escríbele a nuestro número de entregas:\n\n👉 WhatsApp: +57 324 493 0475\n🔗 O presiona aquí: https://wa.me/573244930475\n\n📋 Envíale:\n• La captura del pago\n• Tu nombre completo\n\n¡Gracias por tu compra! 🎉";
 
 // Carpeta para historial simple de chat (contexto para la IA)
 $HISTORY_DIR = __DIR__ . '/chat_memory';
@@ -841,11 +841,11 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
             $plansText = getPlansText($PLANS);
             $hour = (int)date('G');
             if($hour >= 5 && $hour < 12){
-                $saludo = "¡Buen día! Soy Jhon, tu asesor de streaming. Te dejo los planes disponibles 👇\n\n";
+                $saludo = "¡Buen día! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming. Mira lo que tenemos disponible 👇\n\n";
             } elseif($hour >= 12 && $hour < 18){
-                $saludo = "¡Buenas tardes! Soy Jhon, tu asesor de streaming. Mira nuestros planes 👇\n\n";
+                $saludo = "¡Buenas tardes! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming. Mira lo que tenemos disponible 👇\n\n";
             } else {
-                $saludo = "¡Buenas noches! Soy Jhon, tu asesor de streaming. Estos son los planes 👇\n\n";
+                $saludo = "¡Buenas noches! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming. Mira lo que tenemos disponible 👇\n\n";
             }
             $prefix = $saludo;
             sleep(rand(2, 3)); // Pausa antes de enviar planes
