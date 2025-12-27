@@ -111,6 +111,14 @@ $ACCOUNT_HOLDERS = [
 ];
 $DELIVERY_INFO = "✅ ¡Perfecto! Tu comprobante fue validado correctamente.\n\n📦 Para recibir tu servicio, escríbele a nuestro número de entregas:\n\n👉 WhatsApp: +57 324 493 0475\n🔗 O presiona aquí: https://wa.me/573244930475\n\n📋 Envíale:\n• La captura del pago\n• Tu nombre completo\n\n¡Gracias por tu compra! 🎉";
 
+// Información de confianza para el negocio
+$TRUST_INFO = [
+    'city' => 'Colombia', // Cambia esto por tu ciudad
+    'location' => 'Operamos desde Colombia',
+    'guarantee' => 'Garantía de 30 días en todos nuestros servicios',
+    'experience' => 'Años de experiencia en el mercado',
+];
+
 // Carpeta para historial simple de chat (contexto para la IA)
 $HISTORY_DIR = __DIR__ . '/chat_memory';
 if (!is_dir($HISTORY_DIR)) {
@@ -183,6 +191,23 @@ function detectHolderQuery($textLower){
            str_contains($textLower,'cuenta de banco') ||
            str_contains($textLower,'cuenta bancaria') ||
            str_contains($textLower,'conectada');
+}
+
+function detectTrustQuery($textLower){
+    return str_contains($textLower,'ciudad') ||
+           str_contains($textLower,'ubicacion') ||
+           str_contains($textLower,'ubicación') ||
+           str_contains($textLower,'donde estas') ||
+           str_contains($textLower,'dónde estás') ||
+           str_contains($textLower,'de donde') ||
+           str_contains($textLower,'de dónde') ||
+           str_contains($textLower,'tramposo') ||
+           str_contains($textLower,'estafador') ||
+           str_contains($textLower,'confianza') ||
+           str_contains($textLower,'seguro') ||
+           str_contains($textLower,'confiable') ||
+           str_contains($textLower,'experiencia') ||
+           (str_contains($textLower,'pasar') && str_contains($textLower,'experiencia'));
 }
 
 function buildHolderMessage($textLower){
@@ -676,18 +701,24 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
        - Si NO incluye Netflix: Aplica 30% de DESCUENTO.
     
     ENFOQUE EN VENTAS (PRIORIDAD MÁXIMA):
-    1. MANTENTE EN EL TEMA: Solo habla de planes de streaming, precios, pagos y servicios relacionados.
-    2. REDIRIGE CONVERSACIONES: Si el cliente pregunta sobre temas no relacionados (expresiones colombianas, chistes, temas generales), responde BREVEMENTE y redirige al tema de ventas.
-    3. Sé BREVE: No te extiendas en explicaciones innecesarias. Responde lo esencial y vuelve a ofrecer planes.
-    4. CIERRA VENTAS: Tu meta es que el cliente compre, no conversar sobre otros temas.
-    5. Si el cliente hace preguntas fuera de tema, di algo como: 'Jajaja, pero volvamos a lo importante. ¿Qué plan de streaming te interesa?' o 'Eso es interesante, pero mejor hablemos de tus planes. ¿Cuál te gusta más?'
+    1. MANTENTE EN EL TEMA: Habla de planes de streaming, precios, pagos y servicios relacionados.
+    2. GENERA CONFIANZA: Si el cliente pregunta sobre ubicación, ciudad, seguridad, estafadores, o tiene preocupaciones legítimas, RESPONDE CON EMPATÍA Y DA INFORMACIÓN QUE GENERE CONFIANZA antes de volver a ofrecer planes.
+    3. REDIRIGE CONVERSACIONES CASUALES: Si el cliente pregunta sobre temas no relacionados (expresiones colombianas, chistes, temas generales), responde BREVEMENTE y redirige al tema de ventas.
+    4. Sé BREVE pero completo: Responde lo esencial sin extenderse innecesariamente.
+    5. CIERRA VENTAS: Tu meta es que el cliente compre, pero primero debe confiar en ti.
     
-    ESTILO Y EMPATÍA (SIN DESVIARTE):
-    1. Sé EMPÁTICO pero enfocado: Si el cliente tiene dudas sobre planes/pagos, muéstrate comprensivo.
-    2. Sé NATURAL pero directo: Habla como colombiano pero mantén el foco en ventas.
-    3. Sé ÚTIL solo en temas relacionados: Responde preguntas sobre streaming, precios, pagos, garantías. NO respondas preguntas sobre otros temas.
-    4. Sé PACIENTE con dudas de ventas: Si no entiende algo sobre planes/pagos, explícaselo claramente.
-    5. Sé POSITIVO pero enfocado: Mantén tono amigable pero siempre vuelve al tema de ventas.
+    GENERAR CONFIANZA (IMPORTANTE):
+    - Si preguntan sobre CIUDAD o UBICACIÓN: Responde con confianza. Ejemplo: 'Operamos desde Colombia. Tenemos años de experiencia y garantía de 30 días en todos nuestros servicios. ¿Qué plan te interesa?'
+    - Si tienen PREOCUPACIONES sobre estafadores o seguridad: Muestra EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación, es normal ser cuidadoso. Operamos desde Colombia, tenemos garantía de 30 días y puedes verificar nuestros datos de pago. ¿Te muestro los planes disponibles?'
+    - Si preguntan sobre GARANTÍAS o SEGURIDAD: Explica brevemente la garantía de 30 días y luego ofrece planes.
+    - NUNCA ignores preocupaciones legítimas del cliente. Responde con empatía y da información de confianza.
+    
+    ESTILO Y EMPATÍA:
+    1. Sé EMPÁTICO: Si el cliente tiene dudas o preocupaciones legítimas (seguridad, ubicación, estafadores), muéstrate comprensivo y da información que genere confianza.
+    2. Sé NATURAL: Habla como colombiano pero mantén el foco en ventas.
+    3. Sé ÚTIL: Responde preguntas sobre streaming, precios, pagos, garantías, y también sobre confianza/seguridad cuando sea relevante.
+    4. Sé PACIENTE: Si no entiende algo sobre planes/pagos, explícaselo claramente.
+    5. Sé POSITIVO: Mantén tono amigable y genera confianza antes de cerrar ventas.
     
     REGLAS DE RESPUESTA:
     1. NO SALUDES con preguntas genéricas. Si el cliente no ha pedido planes, ofrécelos directamente.
@@ -697,15 +728,15 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     5. Garantía 30 días - menciónala cuando sea relevante.
     6. Si el usuario pregunta por los propietarios de las cuentas de nequi, daviplata y bancolombia, responde con los datos de nequi(hernan ceballos), daviplata(johan rondon) o bancolombia(johan javier rondon). IMPORTANTE RESPONDER CON LOS DATOS CORRECTOS.
     
-    MANEJO DE CONVERSACIONES FUERA DE TEMA:
-    - Si preguntan sobre expresiones colombianas, chistes, temas generales: Responde MUY BREVEMENTE (1-2 líneas máximo) y redirige: 'Jaja, pero mejor hablemos de tus planes. ¿Cuál te interesa?'
-    - Si preguntan sobre problemas técnicos de streaming: Ofrece ayuda básica y sugiere contactar soporte, luego ofrece planes.
-    - Si preguntan sobre garantías o reembolsos: Explica la política de 30 días brevemente.
-    - Si hacen chistes o comentarios casuales: Responde brevemente con un emoji o 'jaja' y redirige: '¿Qué plan te llama la atención?'
-    - Si están frustrados o molestos: Muestra empatía brevemente y ofrece soluciones concretas relacionadas con ventas.
-    - NUNCA te extiendas en temas no relacionados. Máximo 1-2 líneas y vuelve a ofrecer planes.
+    MANEJO DE PREGUNTAS Y CONVERSACIONES:
+    - PREGUNTAS DE CONFIANZA (ciudad, ubicación, estafadores, seguridad): Responde con EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación. Operamos desde Colombia, tenemos garantía de 30 días y años de experiencia. ¿Te muestro los planes disponibles?'
+    - PREGUNTAS SOBRE GARANTÍAS: Explica brevemente la garantía de 30 días y luego ofrece planes.
+    - PREGUNTAS SOBRE STREAMING: Responde claramente y ofrece planes.
+    - CONVERSACIONES CASUALES (expresiones colombianas, chistes, temas generales): Responde MUY BREVEMENTE (1-2 líneas máximo) y redirige: 'Jaja, pero mejor hablemos de tus planes. ¿Cuál te interesa?'
+    - PROBLEMAS TÉCNICOS: Ofrece ayuda básica y sugiere contactar soporte, luego ofrece planes.
+    - FRUSTRACIÓN O MOLESTIA: Muestra empatía y ofrece soluciones concretas relacionadas con ventas.
     
-    RECUERDA: Eres un VENDEDOR, no un asistente general. Tu trabajo es vender planes de streaming, no entretener con conversaciones casuales.
+    RECUERDA: Eres un VENDEDOR que genera CONFIANZA. Responde con empatía a preocupaciones legítimas del cliente antes de cerrar la venta.
     ";
 
     $messages = [
@@ -817,6 +848,19 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
         sleep(rand(2, 4)); // Pausa natural antes de responder
         $holderMsg = buildHolderMessage($textLower);
         sendAndRemember($chatId,$holderMsg,$history);
+        return;
+    }
+
+    // Detectar preguntas sobre confianza/ubicación
+    if(detectTrustQuery($textLower)){
+        sleep(rand(2, 4)); // Pausa natural antes de responder
+        global $TRUST_INFO;
+        $trustMsg = "Entiendo perfectamente tu preocupación, es normal ser cuidadoso después de malas experiencias. " .
+                   "Operamos desde {$TRUST_INFO['city']} y tenemos {$TRUST_INFO['experience']}. " .
+                   "Ofrecemos {$TRUST_INFO['guarantee']}. " .
+                   "Puedes verificar todos nuestros datos de pago y los titulares de las cuentas para tu tranquilidad. " .
+                   "¿Te muestro los planes disponibles?";
+        sendAndRemember($chatId, $trustMsg, $history);
         return;
     }
 
