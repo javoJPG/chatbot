@@ -210,6 +210,23 @@ function detectTrustQuery($textLower){
            (str_contains($textLower,'pasar') && str_contains($textLower,'experiencia'));
 }
 
+function detectTechnicalQuery($textLower){
+    return str_contains($textLower,'pantalla') ||
+           str_contains($textLower,'bloqueo') ||
+           str_contains($textLower,'bloqueada') ||
+           str_contains($textLower,'activacion') ||
+           str_contains($textLower,'activación') ||
+           str_contains($textLower,'error') ||
+           str_contains($textLower,'problema') ||
+           str_contains($textLower,'soporte') ||
+           str_contains($textLower,'asistencia') ||
+           str_contains($textLower,'tigo') ||
+           str_contains($textLower,'claro') ||
+           str_contains($textLower,'movistar') ||
+           (str_contains($textLower,'atencion') && str_contains($textLower,'cliente')) ||
+           (str_contains($textLower,'atención') && str_contains($textLower,'cliente'));
+}
+
 function buildHolderMessage($textLower){
     global $ACCOUNT_HOLDERS;
     $parts=[];
@@ -707,11 +724,13 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     4. Sé BREVE pero completo: Responde lo esencial sin extenderse innecesariamente.
     5. CIERRA VENTAS: Tu meta es que el cliente compre, pero primero debe confiar en ti.
     
-    GENERAR CONFIANZA (IMPORTANTE):
+    GENERAR CONFIANZA Y AYUDAR (IMPORTANTE):
     - Si preguntan sobre CIUDAD o UBICACIÓN: Responde con confianza. Ejemplo: 'Operamos desde Colombia. Tenemos años de experiencia y garantía de 30 días en todos nuestros servicios. ¿Qué plan te interesa?'
     - Si tienen PREOCUPACIONES sobre estafadores o seguridad: Muestra EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación, es normal ser cuidadoso. Operamos desde Colombia, tenemos garantía de 30 días y puedes verificar nuestros datos de pago. ¿Te muestro los planes disponibles?'
     - Si preguntan sobre GARANTÍAS o SEGURIDAD: Explica brevemente la garantía de 30 días y luego ofrece planes.
-    - NUNCA ignores preocupaciones legítimas del cliente. Responde con empatía y da información de confianza.
+    - Si preguntan sobre PROBLEMAS TÉCNICOS relacionados con streaming (pantallas bloqueadas, activación, errores, asistencia al cliente): Responde con EMPATÍA y ofrece ayuda básica. Ejemplo: 'Entiendo tu situación. Si tienes problemas con pantallas bloqueadas o activación, puedes contactar el soporte del servicio directamente. Nuestros planes incluyen garantía de 30 días, así que si algo no funciona, te ayudamos. ¿Ya tienes algún plan o quieres ver nuestras opciones?'
+    - Si preguntan sobre SOPORTE o ASISTENCIA: Ofrece ayuda básica y menciona la garantía, luego ofrece planes.
+    - NUNCA ignores preocupaciones legítimas del cliente. Responde con empatía y da información útil antes de ofrecer planes.
     
     ESTILO Y EMPATÍA:
     1. Sé EMPÁTICO: Si el cliente tiene dudas o preocupaciones legítimas (seguridad, ubicación, estafadores), muéstrate comprensivo y da información que genere confianza.
@@ -730,10 +749,10 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     
     MANEJO DE PREGUNTAS Y CONVERSACIONES:
     - PREGUNTAS DE CONFIANZA (ciudad, ubicación, estafadores, seguridad): Responde con EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación. Operamos desde Colombia, tenemos garantía de 30 días y años de experiencia. ¿Te muestro los planes disponibles?'
+    - PREGUNTAS TÉCNICAS DE STREAMING (pantallas bloqueadas, activación, errores, soporte, asistencia al cliente): Responde con EMPATÍA y ofrece ayuda básica. Menciona la garantía de 30 días y luego ofrece planes. NO ignores estas preguntas, son legítimas.
     - PREGUNTAS SOBRE GARANTÍAS: Explica brevemente la garantía de 30 días y luego ofrece planes.
-    - PREGUNTAS SOBRE STREAMING: Responde claramente y ofrece planes.
-    - CONVERSACIONES CASUALES (expresiones colombianas, chistes, temas generales): Responde MUY BREVEMENTE (1-2 líneas máximo) y redirige: 'Jaja, pero mejor hablemos de tus planes. ¿Cuál te interesa?'
-    - PROBLEMAS TÉCNICOS: Ofrece ayuda básica y sugiere contactar soporte, luego ofrece planes.
+    - PREGUNTAS SOBRE STREAMING (planes, precios, servicios): Responde claramente y ofrece planes.
+    - CONVERSACIONES CASUALES (expresiones colombianas, chistes, temas generales NO relacionados): Responde MUY BREVEMENTE (1-2 líneas máximo) y redirige: 'Jaja, pero mejor hablemos de tus planes. ¿Cuál te interesa?'
     - FRUSTRACIÓN O MOLESTIA: Muestra empatía y ofrece soluciones concretas relacionadas con ventas.
     
     RECUERDA: Eres un VENDEDOR que genera CONFIANZA. Responde con empatía a preocupaciones legítimas del cliente antes de cerrar la venta.
@@ -861,6 +880,17 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
                    "Puedes verificar todos nuestros datos de pago y los titulares de las cuentas para tu tranquilidad. " .
                    "¿Te muestro los planes disponibles?";
         sendAndRemember($chatId, $trustMsg, $history);
+        return;
+    }
+
+    // Detectar preguntas técnicas sobre streaming
+    if(detectTechnicalQuery($textLower)){
+        sleep(rand(2, 4)); // Pausa natural antes de responder
+        global $TRUST_INFO;
+        $techMsg = "Entiendo tu situación. Si tienes problemas con pantallas bloqueadas, activación o errores, puedes contactar el soporte del servicio directamente (Tigo, Claro, etc.). " .
+                  "Nuestros planes incluyen {$TRUST_INFO['guarantee']}, así que si algo no funciona correctamente, te ayudamos a resolverlo. " .
+                  "¿Ya tienes algún plan activo o quieres ver nuestras opciones disponibles?";
+        sendAndRemember($chatId, $techMsg, $history);
         return;
     }
 
