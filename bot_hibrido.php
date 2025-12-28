@@ -728,7 +728,7 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     - Si preguntan sobre CIUDAD o UBICACIÓN: Responde con confianza. Ejemplo: 'Operamos desde Colombia. Tenemos años de experiencia y garantía de 30 días en todos nuestros servicios. ¿Qué plan te interesa?'
     - Si tienen PREOCUPACIONES sobre estafadores o seguridad: Muestra EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación, es normal ser cuidadoso. Operamos desde Colombia, tenemos garantía de 30 días y puedes verificar nuestros datos de pago. ¿Te muestro los planes disponibles?'
     - Si preguntan sobre GARANTÍAS o SEGURIDAD: Explica brevemente la garantía de 30 días y luego ofrece planes.
-    - Si preguntan sobre PROBLEMAS TÉCNICOS relacionados con streaming (pantallas bloqueadas, activación, errores, asistencia al cliente): Responde con EMPATÍA y ofrece ayuda básica. Ejemplo: 'Entiendo tu situación. Si tienes problemas con pantallas bloqueadas o activación, puedes contactar el soporte del servicio directamente. Nuestros planes incluyen garantía de 30 días, así que si algo no funciona, te ayudamos. ¿Ya tienes algún plan o quieres ver nuestras opciones?'
+    - Si preguntan sobre PROBLEMAS TÉCNICOS relacionados con streaming (pantallas bloqueadas, activación, errores, asistencia al cliente, Tigo, Claro): Responde de manera ÚTIL, DIRECTA y EMPÁTICA. Si el cliente pregunta sobre activación de pantallas o problemas técnicos, explícale brevemente que puede contactar el soporte del servicio (Tigo, Claro, etc.) y que con nuestros planes tiene garantía de 30 días. Sé EMPÁTICO pero CONCISO. Luego pregunta si necesita ayuda con algún plan o si ya tiene uno activo. NO uses respuestas genéricas largas.
     - Si preguntan sobre SOPORTE o ASISTENCIA: Ofrece ayuda básica y menciona la garantía, luego ofrece planes.
     - NUNCA ignores preocupaciones legítimas del cliente. Responde con empatía y da información útil antes de ofrecer planes.
     
@@ -883,16 +883,8 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
         return;
     }
 
-    // Detectar preguntas técnicas sobre streaming
-    if(detectTechnicalQuery($textLower)){
-        sleep(rand(2, 4)); // Pausa natural antes de responder
-        global $TRUST_INFO;
-        $techMsg = "Entiendo tu situación. Si tienes problemas con pantallas bloqueadas, activación o errores, puedes contactar el soporte del servicio directamente (Tigo, Claro, etc.). " .
-                  "Nuestros planes incluyen {$TRUST_INFO['guarantee']}, así que si algo no funciona correctamente, te ayudamos a resolverlo. " .
-                  "¿Ya tienes algún plan activo o quieres ver nuestras opciones disponibles?";
-        sendAndRemember($chatId, $techMsg, $history);
-        return;
-    }
+    // Detectar preguntas técnicas sobre streaming - dejar que la IA responda con más contexto
+    // No interceptar automáticamente, dejar que la IA maneje estas preguntas con más flexibilidad
 
     // ================== 1. REGLAS FIJAS (Planes y Pagos) ==================
     
