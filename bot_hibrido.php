@@ -51,7 +51,7 @@ if (empty($idInstance) || empty($apiTokenInstance) || empty($apiUrlBase)) {
 
 // ================== DATOS DEL NEGOCIO ==================
 $PLANS = [
-  ['emoji'=>'🔥',  'name'=>'Netflix original (1 pantalla, 1 mes)', 'price'=>9900],
+  ['emoji'=>'🔥',  'name'=>'Netflix original (1 pantalla, 1 mes)', 'price'=>11000],
   ['emoji'=>'✨',  'name'=>'Disney Premium (1 mes)', 'price'=>9900],
   ['emoji'=>'❤‍🔥','name'=>'Netflix + Disney Premium (1 mes)', 'price'=>15900],
   ['emoji'=>'🎟',  'name'=>'Netflix + prime video (1 mes)', 'price'=>15900],
@@ -67,7 +67,7 @@ $PLANS = [
 $SERVICES = [
 'netflix' => [
         'name' => 'Netflix (1 pantalla)',
-        'price' => 9900,
+        'price' => 11000,
         'keywords' => ['netflix','nflx','netflis','netfli','netlix','netfliix','netflics']
     ],
     'disney' => [
