@@ -227,6 +227,12 @@ function detectTechnicalQuery($textLower){
            (str_contains($textLower,'atención') && str_contains($textLower,'cliente'));
 }
 
+function detectScreenProblem($textLower){
+    return (str_contains($textLower,'pantalla') && (str_contains($textLower,'problema') || str_contains($textLower,'error') || str_contains($textLower,'bloqueo') || str_contains($textLower,'bloqueada') || str_contains($textLower,'no funciona') || str_contains($textLower,'no sirve'))) ||
+           (str_contains($textLower,'pantalla') && str_contains($textLower,'activacion')) ||
+           (str_contains($textLower,'pantalla') && str_contains($textLower,'activación'));
+}
+
 function buildHolderMessage($textLower){
     global $ACCOUNT_HOLDERS;
     $parts=[];
@@ -380,12 +386,16 @@ function sendText($chatId, $text) {
 }
 
 function getPlansText($planes) {
-    $txt = "🔹 *COMBOS DISPONIBLES*\n\n";
+    $txt = "🎬 *PLANES DE STREAMING DISPONIBLES*\n\n";
     foreach ($planes as $p) {
         $price = '$' . number_format($p['price'], 0, ',', '.');
-        $txt .= "{$p['emoji']} *{$p['name']}*: {$price}\n";
+        $txt .= "{$p['emoji']} *{$p['name']}*\n💰 {$price}\n\n";
     }
-    $txt .= "\n¿Cuál te interesa?";
+    $txt .= "✨ *Garantía de 30 días* en todos los planes\n";
+    $txt .= "🚀 *Activación inmediata* después del pago\n";
+    $txt .= "💳 *Múltiples medios de pago* disponibles\n";
+    $txt .= "📱 *Soporte técnico* incluido\n\n";
+    $txt .= "¿Cuál te interesa? 👇";
     return $txt;
 }
 
@@ -883,8 +893,16 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
         return;
     }
 
-    // Detectar preguntas técnicas sobre streaming - dejar que la IA responda con más contexto
-    // No interceptar automáticamente, dejar que la IA maneje estas preguntas con más flexibilidad
+    // Detectar problemas específicos de pantalla y redirigir al WhatsApp de entregas
+    if(detectScreenProblem($textLower)){
+        sleep(rand(2, 3)); // Pausa natural antes de responder
+        $screenProblemMsg = "Entiendo tu problema con la pantalla. Para solucionarlo rápidamente, escríbele directamente a nuestro número de soporte técnico:\n\n" .
+                           "📱 WhatsApp: +57 324 493 0475\n" .
+                           "🔗 O presiona aquí: https://wa.me/573244930475\n\n" .
+                           "Ellos te ayudarán con la activación, desbloqueo o cualquier problema técnico. ¡Son expertos en eso! 💪";
+        sendAndRemember($chatId, $screenProblemMsg, $history);
+        return;
+    }
 
     // ================== 1. REGLAS FIJAS (Planes y Pagos) ==================
     
