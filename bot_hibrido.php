@@ -248,9 +248,25 @@ function buildHolderMessage($textLower){
     return implode("\n",$parts);
 }
 
-function sendSupportEscalation($chatId,&$history){
-    sendAndRemember($chatId,"🟡 No pude validar esa imagen. Vuelve a enviarla cuando tengas el comprobante completo.",$history);
-    updatePaymentStatus($chatId,'yellow');
+function sendSupportEscalation($chatId,&$history,$isPaymentReceipt=false){
+    if($isPaymentReceipt){
+        // Si es un comprobante pero no se validó, redirigir al WhatsApp de entregas para validación manual
+        sleep(rand(2, 3)); // Pausa natural
+        $manualValidationMsg = "⚠️ No pude validar automáticamente tu comprobante.\n\n" .
+                               "Para validarlo manualmente, escríbele directamente a nuestro número de entregas:\n\n" .
+                               "📱 WhatsApp: +57 324 493 0475\n" .
+                               "🔗 O presiona aquí: https://wa.me/573244930475\n\n" .
+                               "📋 Envíale:\n" .
+                               "• La captura del comprobante\n" .
+                               "• Tu nombre completo\n\n" .
+                               "Ellos te ayudarán a validar el pago y activar tu servicio. 💪";
+        sendAndRemember($chatId,$manualValidationMsg,$history);
+        updatePaymentStatus($chatId,'yellow');
+    } else {
+        // Si no es un comprobante, mantener el mensaje actual
+        sendAndRemember($chatId,"🟡 No pude validar esa imagen. Vuelve a enviarla cuando tengas el comprobante completo.",$history);
+        updatePaymentStatus($chatId,'yellow');
+    }
 }
 
 function assistantAskedPaymentsRecently($history){
@@ -646,18 +662,19 @@ function handlePaymentCapture($chatId,$messageData,&$history){
     $analysis = extractPaymentFromImage($b64,$mime);
     if(!$analysis){
         sendAndRemember($chatId,"Esa imagen no parece un comprobante. ¿Puedes enviarme la captura del recibo donde se vea el banco, la fecha y la cuenta destino, porfa?",$history);
-        sendSupportEscalation($chatId,$history);
+        sendSupportEscalation($chatId,$history,false); // No es un comprobante
         return true;
     }
     if(empty($analysis['is_payment'])){
         sendAndRemember($chatId,"Parece que la imagen no es un comprobante de pago. Necesito la captura completa del recibo para continuar.",$history);
-        sendSupportEscalation($chatId,$history);
+        sendSupportEscalation($chatId,$history,false); // No es un comprobante
         return true;
     }
+    // Si llegamos aquí, es un comprobante real (is_payment = true)
     $validation = validatePaymentByAccountAndDate($analysis,$ALLOWED_ACCOUNTS,$MAX_DAYS_SINCE_PAYMENT);
     if(!$validation['ok']){
-        sendAndRemember($chatId,"⚠️ No pude validar el comprobante.\n\n• ".implode("\n• ",$validation['reasons'])."\n\nPor favor envía la captura completa donde se vea banco, fecha y cuenta destino.",$history);
-        sendSupportEscalation($chatId,$history);
+        // Es un comprobante pero no se validó, redirigir al WhatsApp de entregas
+        sendSupportEscalation($chatId,$history,true); // Es un comprobante, redirigir
         return true;
     }
     $matched = $validation['matched'];
@@ -665,8 +682,8 @@ function handlePaymentCapture($chatId,$messageData,&$history){
     $detectedHolder = trim((string)($analysis['holder_name'] ?? ''));
     if($expectedHolder){
         if($detectedHolder===''){
-            sendAndRemember($chatId,"Necesito que se vea el nombre del destinatario en la captura. ¿Podrías reenviar la imagen donde aparezca claramente a nombre de quién quedó el pago?",$history);
-            sendSupportEscalation($chatId,$history);
+            // Es un comprobante pero falta información, redirigir al WhatsApp
+            sendSupportEscalation($chatId,$history,true);
             return true;
         }
         $expNorm = normalizeNameSimple($expectedHolder);
@@ -677,21 +694,21 @@ function handlePaymentCapture($chatId,$messageData,&$history){
             if($token !== '' && str_contains($detNorm,$token)) $okTokens++;
         }
         if($okTokens < max(1,count($expTokens)-1)){
-            sendAndRemember($chatId,"La captura muestra otro titular distinto a {$expectedHolder}. ¿Puedes confirmar que enviaste al número correcto?",$history);
-            sendSupportEscalation($chatId,$history);
+            // Es un comprobante pero el titular no coincide, redirigir al WhatsApp
+            sendSupportEscalation($chatId,$history,true);
             return true;
         }
     }
     $amount = trim((string)($analysis['amount'] ?? ''));
     if($amount===''){
-        sendAndRemember($chatId,"Casi listo, pero en la captura no se ve el valor enviado. Reenvíala porfa donde aparezca el monto.",$history);
-        sendSupportEscalation($chatId,$history);
+        // Es un comprobante pero falta el monto, redirigir al WhatsApp
+        sendSupportEscalation($chatId,$history,true);
         return true;
     }
     $date = trim((string)($analysis['date'] ?? ''));
     if($date===''){
-        sendAndRemember($chatId,"Necesito también la fecha del comprobante. ¿Me envías la captura donde se vea ese dato?",$history);
-        sendSupportEscalation($chatId,$history);
+        // Es un comprobante pero falta la fecha, redirigir al WhatsApp
+        sendSupportEscalation($chatId,$history,true);
         return true;
     }
     sendAndRemember($chatId,$DELIVERY_INFO,$history);
