@@ -102,12 +102,14 @@ $ALLOWED_ACCOUNTS = [
     ['method'=>'NEQUI','number'=>'3207702142'],
     ['method'=>'DAVIPLATA','number'=>'3218474247'],
     ['method'=>'BANCOLOMBIA','number'=>'05900012119'],
+    ['method'=>'LLAVE_BREVE','gmail'=>'johanjavier654@gmail.com'],
 ];
 $MAX_DAYS_SINCE_PAYMENT = (int) (getenv('MAX_DAYS_SIN_PAYMENT') ?: 1);
 $ACCOUNT_HOLDERS = [
     'NEQUI' => 'Hernan Ceballos',
     'DAVIPLATA' => 'Johan Rondon',
     'BANCOLOMBIA' => 'Johan Javier Rondon',
+    'LLAVE_BREVE' => 'Johanjavier654@gmail.com',
 ];
 $DELIVERY_INFO = "✅ ¡Perfecto! Tu comprobante fue validado correctamente.\n\n📦 Para recibir tu servicio, escríbele a nuestro número de entregas:\n\n👉 WhatsApp: +57 324 493 0475\n🔗 O presiona aquí: https://wa.me/573244930475\n\n📋 Envíale:\n• La captura del pago\n• Tu nombre completo\n\n¡Gracias por tu compra! 🎉";
 
