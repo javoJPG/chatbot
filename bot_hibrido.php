@@ -176,6 +176,17 @@ function updatePaymentStatus($chatId,$status){
     @file_put_contents($PAYMENT_STATUS_FILE,json_encode($existing,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
 }
 
+function getPaymentStatus($chatId){
+    global $PAYMENT_STATUS_FILE;
+    if(!file_exists($PAYMENT_STATUS_FILE)) return null;
+    $json = @file_get_contents($PAYMENT_STATUS_FILE);
+    $decoded = json_decode($json,true);
+    if(!is_array($decoded)) return null;
+    $entry = $decoded[$chatId] ?? null;
+    if(!is_array($entry)) return null;
+    return $entry['status'] ?? null;
+}
+
 function detectHolderQuery($textLower){
     if(preg_match('/a\s*(que|qué)\s*nombre/u', $textLower)) return true;
     if(preg_match('/nombre\s*(esta|est[aá])/u', $textLower)) return true;
@@ -729,7 +740,7 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     // Limpiamos los datos de pago para el prompt (sin asteriscos excesivos para que la IA los lea bien)
     $paymentPrompt = str_replace('*', '', $PAYMENT_INFO);
 
-    $systemPrompt = "Eres Javier, un asesor de ventas colombiano enfocado en vender cuentas de streaming. Tu OBJETIVO PRINCIPAL es CERRAR VENTAS, no entretener con conversaciones casuales.
+    $systemPrompt = "Eres Javier, un asesor de ventas colombiano que vende cuentas de streaming.
     
     TUS PRODUCTOS Y PRECIOS UNITARIOS:
     {$contextIndividuals}
@@ -746,12 +757,10 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
        - Si incluye NETFLIX: Precio FULL (sin descuento).
        - Si NO incluye Netflix: Aplica 30% de DESCUENTO.
     
-    ENFOQUE EN VENTAS (PRIORIDAD MÁXIMA):
-    1. MANTENTE EN EL TEMA: Habla de planes de streaming, precios, pagos y servicios relacionados.
-    2. GENERA CONFIANZA: Si el cliente pregunta sobre ubicación, ciudad, seguridad, estafadores, o tiene preocupaciones legítimas, RESPONDE CON EMPATÍA Y DA INFORMACIÓN QUE GENERE CONFIANZA antes de volver a ofrecer planes.
-    3. REDIRIGE CONVERSACIONES CASUALES: Si el cliente pregunta sobre temas no relacionados (expresiones colombianas, chistes, temas generales), responde BREVEMENTE y redirige al tema de ventas.
-    4. Sé BREVE pero completo: Responde lo esencial sin extenderse innecesariamente.
-    5. CIERRA VENTAS: Tu meta es que el cliente compre, pero primero debe confiar en ti.
+    OBJETIVO:
+    1. Responder cualquier pregunta que haga el cliente, sin evadirla.
+    2. Mantener las respuestas CORTAS (1 a 3 frases). Máximo 2–3 líneas en WhatsApp.
+    3. Cuando sea natural, cerrar con una pregunta de venta (plan / medios de pago), sin cambiar de tema bruscamente.
     
     GENERAR CONFIANZA Y AYUDAR (IMPORTANTE):
     - Si preguntan sobre CIUDAD o UBICACIÓN: Responde con confianza. Ejemplo: 'Operamos desde Colombia. Tenemos años de experiencia y garantía de 30 días en todos nuestros servicios. ¿Qué plan te interesa?'
@@ -768,13 +777,14 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     4. Sé PACIENTE: Si no entiende algo sobre planes/pagos, explícaselo claramente.
     5. Sé POSITIVO: Mantén tono amigable y genera confianza antes de cerrar ventas.
     
-    REGLAS DE RESPUESTA:
-    1. NO SALUDES con preguntas genéricas. Si el cliente no ha pedido planes, ofrécelos directamente.
-    2. Sé CONCISO: Responde lo necesario sin extenderse. Si el cliente pregunta sobre streaming, sé claro y breve.
-    3. Si das un precio, cierra con: '¿Te paso medios de pago?'
-    4. Si el usuario dice 'SÍ', 'Claro', 'Dale' (confirmando pago) o pide los datos: ENVÍA LOS DATOS DE PAGO que tienes arriba. Diles que envíen el comprobante.
-    5. Garantía 30 días - menciónala cuando sea relevante.
-    6. Si el usuario pregunta por los propietarios de las cuentas de nequi, daviplata y bancolombia, responde con los datos de nequi(hernan ceballos), daviplata(johan rondon) o bancolombia(johan javier rondon). IMPORTANTE RESPONDER CON LOS DATOS CORRECTOS.
+    REGLAS DE RESPUESTA (CORTAS Y CLARAS):
+    1. Responde la pregunta del cliente primero (aunque sea de otro tema).
+    2. Evita textos largos, listas largas o explicaciones extensas. Si hace falta, haz 1 pregunta de aclaración.
+    3. Si el tema es de streaming/planes: da la respuesta y ofrece el siguiente paso (plan o medios de pago).
+    4. Si el tema NO es de streaming: responde breve y luego pregunta algo suave como: '¿Qué plan te interesa?' o '¿Te muestro los planes?'
+    5. Si das un precio, cierra con: '¿Te paso medios de pago?' (puedes variarlo sin perder la intención).
+    6. Si el usuario confirma pago o pide datos, ENVÍA LOS DATOS DE PAGO (arriba) y pide el comprobante.
+    7. Si preguntan por titulares de pago, responde con: nequi(Hernan Ceballos), daviplata(Johan Rondon), bancolombia(Johan Javier Rondon). No inventes otros.
     
     MANEJO DE PREGUNTAS Y CONVERSACIONES:
     - PREGUNTAS DE CONFIANZA (ciudad, ubicación, estafadores, seguridad): Responde con EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación. Operamos desde Colombia, tenemos garantía de 30 días y años de experiencia. ¿Te muestro los planes disponibles?'
@@ -792,8 +802,8 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
         'messages' => [
             ['role' => 'system', 'content' => $systemPrompt],
         ],
-        'max_tokens' => 300, // Respuestas más cortas y enfocadas en ventas
-        'temperature' => 0.5 // Menos creatividad, más enfocado en el objetivo de ventas
+        'max_tokens' => 220, // Respuestas cortas
+        'temperature' => 0.7 // Más naturalidad sin volverse largo
     ];
 
     $recentHistory = array_slice($chatHistory, -8);
@@ -915,11 +925,29 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     // Detectar problemas específicos de pantalla y redirigir al WhatsApp de entregas
     if(detectScreenProblem($textLower)){
         sleep(rand(2, 3)); // Pausa natural antes de responder
-        $screenProblemMsg = "Entiendo tu problema con la pantalla. Para solucionarlo rápidamente, escríbele directamente a nuestro número de soporte técnico:\n\n" .
-                           "📱 WhatsApp: +57 324 493 0475\n" .
-                           "🔗 O presiona aquí: https://wa.me/573244930475\n\n" .
-                           "Ellos te ayudarán con la activación, desbloqueo o cualquier problema técnico. ¡Son expertos en eso! 💪";
-        sendAndRemember($chatId, $screenProblemMsg, $history);
+        $payStatus = getPaymentStatus($chatId);
+        if($payStatus === 'green'){
+            $screenProblemMsg = "Entiendo tu problema con la pantalla ✅\n\n" .
+                               "Como tu pago ya está confirmado, escríbele a nuestro WhatsApp de soporte/entregas para que te lo solucionen rápido:\n\n" .
+                               "📱 WhatsApp: +57 324 493 0475\n" .
+                               "🔗 https://wa.me/573244930475\n\n" .
+                               "Envíales:\n" .
+                               "• Tu nombre\n" .
+                               "• Qué servicio tienes\n" .
+                               "• Qué error te sale / qué pasa con la pantalla\n\n" .
+                               "Allá te ayudan con activación, desbloqueo y cualquier falla 💪";
+            sendAndRemember($chatId, $screenProblemMsg, $history);
+        } elseif($payStatus === 'yellow'){
+            // Pago pendiente / no validado: mandar a validación manual con el comprobante
+            sendSupportEscalation($chatId, $history, true);
+        } else {
+            // Sin pago confirmado: no mandarlo a entregas; pedir comprobante o guiar a compra
+            $screenPrePayMsg = "Te entiendo 🙌\n\n" .
+                               "Para pasarte con soporte/entregas necesito tener el pago confirmado.\n" .
+                               "Si *ya pagaste*, envíame el comprobante por aquí para validarlo.\n" .
+                               "Si *aún no has pagado*, dime qué plan quieres y te paso los medios de pago.";
+            sendAndRemember($chatId, $screenPrePayMsg, $history);
+        }
         return;
     }
 
