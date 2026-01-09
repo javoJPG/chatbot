@@ -36,6 +36,12 @@ function loadEnv($filePath) {
 // Cargar archivo .env si existe
 loadEnv(__DIR__ . '/.env');
 
+// ================== ZONA HORARIA ==================
+// Importante: el hosting suele estar en UTC; esto afecta saludos y lógica por hora.
+// Puedes sobreescribir con APP_TIMEZONE en tu .env (ej: America/Bogota).
+$APP_TIMEZONE = getenv('APP_TIMEZONE') ?: 'America/Bogota';
+@date_default_timezone_set($APP_TIMEZONE);
+
 // ================== CONFIGURACIÓN ==================
 $idInstance       = getenv('GREEN_ID') ?: '';
 $apiTokenInstance = getenv('GREEN_TOKEN') ?: '';
