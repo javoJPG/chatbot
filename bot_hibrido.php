@@ -176,15 +176,62 @@ function updatePaymentStatus($chatId,$status){
     @file_put_contents($PAYMENT_STATUS_FILE,json_encode($existing,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT));
 }
 
-function getPaymentStatus($chatId){
+function getPaymentStatusEntry($chatId){
     global $PAYMENT_STATUS_FILE;
     if(!file_exists($PAYMENT_STATUS_FILE)) return null;
     $json = @file_get_contents($PAYMENT_STATUS_FILE);
     $decoded = json_decode($json,true);
     if(!is_array($decoded)) return null;
     $entry = $decoded[$chatId] ?? null;
-    if(!is_array($entry)) return null;
-    return $entry['status'] ?? null;
+    return is_array($entry) ? $entry : null;
+}
+
+function getPaymentStatus($chatId){
+    $entry = getPaymentStatusEntry($chatId);
+    return is_array($entry) ? ($entry['status'] ?? null) : null;
+}
+
+function assistantSentDeliveryInfo($history){
+    foreach(array_reverse($history) as $entry){
+        if(($entry['role'] ?? '') === 'assistant'){
+            $text = mb_strtolower($entry['content'] ?? '');
+            if(
+                str_contains($text,'wa.me/573244930475') ||
+                str_contains($text,'324 493 0475') ||
+                str_contains($text,'número de entregas') ||
+                str_contains($text,'numero de entregas') ||
+                str_contains($text,'soporte/entregas') ||
+                str_contains($text,'soporte') && str_contains($text,'entregas')
+            ){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function detectDeliveryNoResponseComplaint($textLower){
+    // Reclamos típicos: "escribí pero no me contestan", "no responden", "nadie contesta", etc.
+    $patterns = [
+        '/\b(escrib[ií]|le\s*escrib[ií]|les\s*escrib[ií])\b.*\b(no\s*me\s*(contesta(n)?|responde(n)?)|sin\s*respuesta)\b/u',
+        '/\bno\s*me\s*(contesta(n)?|responde(n)?)\b/u',
+        '/\bnadie\s*(contesta|responde)\b/u',
+        '/\b(no\s*(contestan|responden)|sin\s*respuesta)\b.*\b(entregas|soporte)\b/u',
+        '/\bme\s*(dejaron|dejan)\s*en\s*visto\b/u',
+        '/\bno\s*me\s*atienden\b/u',
+    ];
+    foreach($patterns as $re){
+        if(preg_match($re, $textLower)) return true;
+    }
+    return false;
+}
+
+function isWithinDeliveryOffHours($timestamp){
+    $start = (int)(getenv('DELIVERY_OFFHOURS_START') ?: 1); // 1am
+    $end   = (int)(getenv('DELIVERY_OFFHOURS_END') ?: 8);   // 8am
+    $h = (int)date('G', (int)$timestamp);
+    // Rango simple (no cruza medianoche). Si necesitas que cruce medianoche, lo ajustamos.
+    return ($h >= $start && $h < $end);
 }
 
 function detectHolderQuery($textLower){
@@ -923,6 +970,33 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     }
 
     // Detectar problemas específicos de pantalla y redirigir al WhatsApp de entregas
+    // Reclamos de "no me contestan" a entregas (solo si compró/pago confirmado en horario nocturno)
+    if(detectDeliveryNoResponseComplaint($textLower)){
+        $payEntry = getPaymentStatusEntry($chatId);
+        $payStatus = is_array($payEntry) ? ($payEntry['status'] ?? null) : null;
+        $hasDeliveryContext = assistantSentDeliveryInfo($history) ||
+                              str_contains($textLower,'entrega') ||
+                              str_contains($textLower,'entregas') ||
+                              (str_contains($textLower,'soporte') && str_contains($textLower,'entreg'));
+
+        if($hasDeliveryContext && $payStatus === 'green'){
+            $payTs = strtotime((string)($payEntry['updatedAt'] ?? ''));
+            $nowTs = time();
+            if($payTs && isWithinDeliveryOffHours($payTs) && isWithinDeliveryOffHours($nowTs)){
+                sleep(rand(2, 3)); // Pausa natural antes de responder
+                $offHoursMsg = "Te entiendo 🙌\n\n" .
+                               "A esta hora el chat de entregas no está disponible (después de la 1:00 am).\n\n" .
+                               "✅ Déjales tu mensaje con:\n" .
+                               "• Tu nombre\n" .
+                               "• La captura del pago\n" .
+                               "• El servicio que compraste\n\n" .
+                               "Apenas estén en horario te responden y te lo activan.";
+                sendAndRemember($chatId, $offHoursMsg, $history);
+                return;
+            }
+        }
+    }
+
     if(detectScreenProblem($textLower)){
         sleep(rand(2, 3)); // Pausa natural antes de responder
         $payStatus = getPaymentStatus($chatId);
