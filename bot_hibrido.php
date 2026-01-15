@@ -317,7 +317,7 @@ function buildHolderMessage($textLower){
 function sendSupportEscalation($chatId,&$history,$isPaymentReceipt=false){
     if($isPaymentReceipt){
         // Si es un comprobante pero no se validó, redirigir al WhatsApp de entregas para validación manual
-        sleep(rand(2, 3)); // Pausa natural
+        sleepNatural(2, 3); // Pausa natural
         $manualValidationMsg = "⚠️ No pude validar automáticamente tu comprobante.\n\n" .
                                "Para validarlo manualmente, escríbele directamente a nuestro número de entregas:\n\n" .
                                "📱 WhatsApp: +57 324 493 0475\n" .
@@ -473,9 +473,9 @@ function getPlansText($planes) {
         $price = '$' . number_format($p['price'], 0, ',', '.');
         $txt .= "{$p['emoji']} *{$p['name']}*\n💰 {$price}\n\n";
     }
-    $txt .= "✨ *Garantía de 30 días* en todos los planes\n";
-    $txt .= "🚀 *Activación inmediata* después del pago\n";
-    $txt .= "💳 *Múltiples medios de pago* disponibles\n";
+    $txt .= "✨ *Garantía de 30 días*\n";
+    $txt .= "🚀 *Activación inmediata* tras el pago\n";
+    $txt .= "💳 *Varios medios de pago*\n";
     $txt .= "📱 *Soporte técnico* incluido\n\n";
     $txt .= "¿Cuál te interesa? 👇";
     return $txt;
@@ -782,6 +782,55 @@ function handlePaymentCapture($chatId,$messageData,&$history){
     return true;
 }
 
+function sleepNatural($minSeconds, $maxSeconds = null){
+    $maxSeconds = $maxSeconds ?? $minSeconds;
+    sleep(rand((int)$minSeconds, (int)$maxSeconds));
+}
+
+function buildGreetingPrefix(){
+    $hour = (int)date('G');
+    if($hour >= 5 && $hour < 12){
+        return "¡Buen día! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming.";
+    }
+    if($hour >= 12 && $hour < 18){
+        return "¡Buenas tardes! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming.";
+    }
+    return "¡Buenas noches! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming.";
+}
+
+function normalizeWhitespace($text){
+    $text = preg_replace("/[ \t]+/"," ",(string)$text);
+    $text = preg_replace("/\n{3,}/","\n\n",$text);
+    return trim($text);
+}
+
+function truncateResponse($text, $maxChars = 520){
+    $text = trim((string)$text);
+    if(mb_strlen($text) <= $maxChars) return $text;
+    $cut = mb_substr($text, 0, $maxChars);
+    $lastPunct = max(mb_strrpos($cut,'.'), mb_strrpos($cut,'!'), mb_strrpos($cut,'?'));
+    if($lastPunct !== false && $lastPunct > 120){
+        return trim(mb_substr($cut, 0, $lastPunct + 1));
+    }
+    return trim($cut) . '...';
+}
+
+function sendPlansCatalog($chatId, &$history, $PLANS){
+    $prefix = buildGreetingPrefix() . " Mira lo que tenemos disponible 👇";
+    sleepNatural(2, 3);
+    sendAndRemember($chatId, $prefix, $history);
+    sleep(1);
+    $plansText = getPlansText($PLANS);
+    sendAndRemember($chatId, $plansText, $history);
+}
+
+function buildTrustMessage($trustInfo){
+    return "Entiendo tu preocupación, es normal ser cuidadoso. " .
+           "Operamos desde {$trustInfo['city']} y tenemos {$trustInfo['experience']}. " .
+           "Ofrecemos {$trustInfo['guarantee']}. " .
+           "Si quieres, te muestro los planes disponibles.";
+}
+
     // ================== FUNCIÓN IA (OpenAI) ==================
 function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHistory = []) {
     global $OPENAI_API_KEY, $OPENAI_MODEL, $PAYMENT_INFO;
@@ -835,7 +884,7 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     2. Evita textos largos, listas largas o explicaciones extensas. Si hace falta, haz 1 pregunta de aclaración.
     3. Si el tema es de streaming/planes: da la respuesta y ofrece el siguiente paso (plan o medios de pago).
     4. Si el tema NO es de streaming: responde breve y luego pregunta algo suave como: '¿Qué plan te interesa?' o '¿Te muestro los planes?'
-    5. Si das un precio, cierra con: '¿Te paso medios de pago?' (puedes variarlo sin perder la intención).
+    5. Si das un precio, cierra con una pregunta de pago (varía: '¿Te paso medios de pago?', '¿Te los envío?', '¿Quieres pagar ahora?').
     6. Si el usuario confirma pago o pide datos, ENVÍA LOS DATOS DE PAGO (arriba) y pide el comprobante.
     7. Si preguntan por titulares de pago, responde con: nequi(Hernan Ceballos), daviplata(Johan Rondon), bancolombia(Johan Javier Rondon). No inventes otros.
     
@@ -846,6 +895,12 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     - PREGUNTAS SOBRE STREAMING (planes, precios, servicios): Responde claramente y ofrece planes.
     - CONVERSACIONES CASUALES (expresiones colombianas, chistes, temas generales NO relacionados): Responde MUY BREVEMENTE (1-2 líneas máximo) y redirige: 'Jaja, pero mejor hablemos de tus planes. ¿Cuál te interesa?'
     - FRUSTRACIÓN O MOLESTIA: Muestra empatía y ofrece soluciones concretas relacionadas con ventas.
+    
+    ESTILO HUMANO:
+    - Tono cálido, natural y cercano (colombiano neutro).
+    - Usa máximo 2 emojis por respuesta.
+    - Evita sonar robótico o repetitivo. No repitas el mismo cierre en mensajes seguidos.
+    - Si el usuario saluda o pregunta cómo estás, responde breve y pregunta qué busca.
     
     RECUERDA: Eres un VENDEDOR que genera CONFIANZA. Responde con empatía a preocupaciones legítimas del cliente antes de cerrar la venta.
     ";
@@ -891,7 +946,9 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     if ($err) return "Lo siento, tuve un pequeño error. ¿Me repites?";
 
     $data = json_decode($response, true);
-    return $data['choices'][0]['message']['content'] ?? "Dame un momento.";
+    $reply = $data['choices'][0]['message']['content'] ?? "Dame un momento.";
+    $reply = normalizeWhitespace($reply);
+    return truncateResponse($reply, 520);
 }
 
 // ================== LOGICA PRINCIPAL (Webhook) ==================
@@ -956,7 +1013,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     saveChatHistory($chatId,$history);
 
     if(detectHolderQuery($textLower)){
-        sleep(rand(2, 4)); // Pausa natural antes de responder
+        sleepNatural(2, 4); // Pausa natural antes de responder
         $holderMsg = buildHolderMessage($textLower);
         sendAndRemember($chatId,$holderMsg,$history);
         return;
@@ -964,13 +1021,9 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
 
     // Detectar preguntas sobre confianza/ubicación
     if(detectTrustQuery($textLower)){
-        sleep(rand(2, 4)); // Pausa natural antes de responder
+        sleepNatural(2, 4); // Pausa natural antes de responder
         global $TRUST_INFO;
-        $trustMsg = "Entiendo perfectamente tu preocupación, es normal ser cuidadoso después de malas experiencias. " .
-                   "Operamos desde {$TRUST_INFO['city']} y tenemos {$TRUST_INFO['experience']}. " .
-                   "Ofrecemos {$TRUST_INFO['guarantee']}. " .
-                   "Puedes verificar todos nuestros datos de pago y los titulares de las cuentas para tu tranquilidad. " .
-                   "¿Te muestro los planes disponibles?";
+        $trustMsg = buildTrustMessage($TRUST_INFO);
         sendAndRemember($chatId, $trustMsg, $history);
         return;
     }
@@ -989,7 +1042,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
             $payTs = strtotime((string)($payEntry['updatedAt'] ?? ''));
             $nowTs = time();
             if($payTs && isWithinDeliveryOffHours($payTs) && isWithinDeliveryOffHours($nowTs)){
-                sleep(rand(2, 3)); // Pausa natural antes de responder
+                sleepNatural(2, 3); // Pausa natural antes de responder
                 $offHoursMsg = "Te entiendo 🙌\n\n" .
                                "A esta hora el chat de entregas no está disponible (después de la 1:00 am).\n\n" .
                                "✅ Déjales tu mensaje con:\n" .
@@ -1004,7 +1057,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     }
 
     if(detectScreenProblem($textLower)){
-        sleep(rand(2, 3)); // Pausa natural antes de responder
+        sleepNatural(2, 3); // Pausa natural antes de responder
         $payStatus = getPaymentStatus($chatId);
         if($payStatus === 'green'){
             $screenProblemMsg = "Entiendo tu problema con la pantalla ✅\n\n" .
@@ -1044,29 +1097,9 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     // Solo entrar aquí si piden planes, o si es saludo Y el mensaje es corto (menos de 20 caracteres)
     if ($isAskingPlans || ($isGreeting && strlen($textMessage) < 20)) {
         if($isAskingPlans || !$plansAlreadySent){
-            // Solo saludar si el mensaje original era un saludo
-            $prefix = "";
-            if ($isGreeting) {
-                $prefix = "¡Hola! 👋 Soy tu asesor de streaming. Mira nuestros combos disponibles:\n\n";
-            }
-            
-            $plansText = getPlansText($PLANS);
-            $hour = (int)date('G');
-            if($hour >= 5 && $hour < 12){
-                $saludo = "¡Buen día! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming. Mira lo que tenemos disponible 👇\n\n";
-            } elseif($hour >= 12 && $hour < 18){
-                $saludo = "¡Buenas tardes! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming. Mira lo que tenemos disponible 👇\n\n";
-            } else {
-                $saludo = "¡Buenas noches! 👋 Soy Javier, aquí para ayudarte con tus planes de streaming. Mira lo que tenemos disponible 👇\n\n";
-            }
-            $prefix = $saludo;
-            sleep(rand(2, 3)); // Pausa antes de enviar planes
-            sendAndRemember($chatId, $prefix, $history);
-            sleep(1); // Pausa entre mensajes
-            $plansText = getPlansText($PLANS);
-            sendAndRemember($chatId, str_replace("🔹 *COMBOS DISPONIBLES*\n\n", "", $plansText), $history); 
+            sendPlansCatalog($chatId, $history, $PLANS);
         } else {
-            sleep(rand(2, 3)); // Pausa natural
+            sleepNatural(2, 3); // Pausa natural
             sendAndRemember($chatId, "¡Hola de nuevo! Ya te compartí los planes hace un momento. Dime si quieres que te los reenvíe o si te aparto alguno.", $history);
         }
         exit;
@@ -1076,7 +1109,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     foreach ($PLANS as $plan) {
         // Si el mensaje contiene el emoji del plan
         if (strpos($textMessage, $plan['emoji']) !== false) {
-            sleep(rand(2, 4)); // Pausa antes de confirmar plan
+            sleepNatural(2, 4); // Pausa antes de confirmar plan
             $msg = "Excelente elección: {$plan['emoji']} *{$plan['name']}* por $" . number_format($plan['price'], 0, ',', '.') . ".\n\n¿Te paso los medios de pago?";
             sendAndRemember($chatId, $msg, $history);
             exit;
@@ -1088,7 +1121,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     if($adHocCombo){
         $comboName = implode(' + ', $adHocCombo['services']);
         $final = formatCop($adHocCombo['final']);
-        sleep(rand(3, 5)); // Pausa antes de calcular combo personalizado
+        sleepNatural(3, 5); // Pausa antes de calcular combo personalizado
         $msg = $adHocCombo['discountPercent'] > 0
             ? "Perfecto, {$comboName} queda en {$final} (precio final con 30% de descuento). ¿Te paso los medios de pago?"
             : "Perfecto, {$comboName} queda en {$final}. ¿Te paso los medios de pago?";
@@ -1108,7 +1141,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
         if ($paymentsAlreadySent && !$requestedResend) {
             sendAndRemember($chatId, "Ya te compartí los medios de pago hace un momento. Avísame si necesitas que te los reenvíe.", $history);
         } else {
-            sleep(2); // Pausa natural
+            sleepNatural(2); // Pausa natural
             sendAndRemember($chatId, "¡Claro que sí! Aquí tienes los datos 👇", $history);
             sleep(1);
             sendAndRemember($chatId, $PAYMENT_INFO, $history);
@@ -1130,7 +1163,7 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
     }
 
     // Pausa para simular que "está escribiendo" (más tiempo para parecer más natural)
-    sleep(rand(4, 7));
+    sleepNatural(4, 7);
 
     // Obtener respuesta de GPT
     $aiReply = getAIResponse($textMessage, $contextStr, $indivStr, $history);
