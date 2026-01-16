@@ -314,11 +314,13 @@ function buildHolderMessage($textLower){
     return implode("\n",$parts);
 }
 
-function sendSupportEscalation($chatId,&$history,$isPaymentReceipt=false){
+function sendSupportEscalation($chatId,&$history,$isPaymentReceipt=false,$reason=''){
     if($isPaymentReceipt){
-        // Si es un comprobante pero no se validó, redirigir al WhatsApp de entregas para validación manual
+        // Si es comprobante o no se pudo validar: pasar a validación manual sin inventar información
         sleepNatural(2, 3); // Pausa natural
-        $manualValidationMsg = "⚠️ No pude validar automáticamente tu comprobante.\n\n" .
+        $reasonLine = $reason ? "Motivo: {$reason}\n\n" : "";
+        $manualValidationMsg = "⚠️ No pude validar automáticamente tu comprobante.\n" .
+                               $reasonLine .
                                "Para validarlo manualmente, escríbele directamente a nuestro número de entregas:\n\n" .
                                "📱 WhatsApp: +57 324 493 0475\n" .
                                "🔗 O presiona aquí: https://wa.me/573244930475\n\n" .
@@ -329,7 +331,7 @@ function sendSupportEscalation($chatId,&$history,$isPaymentReceipt=false){
         sendAndRemember($chatId,$manualValidationMsg,$history);
         updatePaymentStatus($chatId,'yellow');
     } else {
-        // Si no es un comprobante, mantener el mensaje actual
+        // Si no es comprobante, pedir reenvío por aquí
         sendAndRemember($chatId,"🟡 No pude validar esa imagen. Vuelve a enviarla cuando tengas el comprobante completo.",$history);
         updatePaymentStatus($chatId,'yellow');
     }
@@ -520,6 +522,16 @@ function onlyDigits($value){
     return preg_replace('/\D+/','', (string)$value);
 }
 
+function parseAmountToNumber($value){
+    $text = trim((string)$value);
+    if($text==='') return null;
+    $text = str_replace(['COP','cop','$',' '], '', $text);
+    $text = str_replace(['.', ','], ['', '.'], $text);
+    $num = is_numeric($text) ? (float)$text : null;
+    if($num === null || $num <= 0) return null;
+    return $num;
+}
+
 function downloadAsBase64($url){
     if(!$url) return null;
     $ch = curl_init($url);
@@ -707,6 +719,10 @@ function validatePaymentByAccountAndDate($extracted,$ALLOWED_ACCOUNTS,$MAX_DAYS_
             }
         }
     }
+    $amountRaw = $extracted['amount'] ?? '';
+    if(parseAmountToNumber($amountRaw) === null){
+        $reasons[]='No se pudo leer el *monto* del pago.';
+    }
     return ['ok'=>count($reasons)===0,'reasons'=>$reasons,'matched'=>$matched];
 }
 
@@ -727,20 +743,21 @@ function handlePaymentCapture($chatId,$messageData,&$history){
     }
     $analysis = extractPaymentFromImage($b64,$mime);
     if(!$analysis){
-        sendAndRemember($chatId,"Esa imagen no parece un comprobante. ¿Puedes enviarme la captura del recibo donde se vea el banco, la fecha y la cuenta destino, porfa?",$history);
-        sendSupportEscalation($chatId,$history,false); // No es un comprobante
+        sendAndRemember($chatId,"No pude leer bien la imagen. ¿Puedes enviarme la captura completa donde se vea banco, fecha y cuenta destino?",$history);
+        sendSupportEscalation($chatId,$history,true,"Imagen borrosa o incompleta");
         return true;
     }
     if(empty($analysis['is_payment'])){
-        sendAndRemember($chatId,"Parece que la imagen no es un comprobante de pago. Necesito la captura completa del recibo para continuar.",$history);
-        sendSupportEscalation($chatId,$history,false); // No es un comprobante
+        sendAndRemember($chatId,"No pude confirmar que sea un comprobante válido. ¿Puedes reenviar la captura completa del recibo?",$history);
+        sendSupportEscalation($chatId,$history,true,"No se pudo confirmar el comprobante");
         return true;
     }
     // Si llegamos aquí, es un comprobante real (is_payment = true)
     $validation = validatePaymentByAccountAndDate($analysis,$ALLOWED_ACCOUNTS,$MAX_DAYS_SINCE_PAYMENT);
     if(!$validation['ok']){
         // Es un comprobante pero no se validó, redirigir al WhatsApp de entregas
-        sendSupportEscalation($chatId,$history,true); // Es un comprobante, redirigir
+        $reason = implode(' ', $validation['reasons']);
+        sendSupportEscalation($chatId,$history,true,$reason); // Es un comprobante, redirigir
         return true;
     }
     $matched = $validation['matched'];
@@ -749,7 +766,7 @@ function handlePaymentCapture($chatId,$messageData,&$history){
     if($expectedHolder){
         if($detectedHolder===''){
             // Es un comprobante pero falta información, redirigir al WhatsApp
-            sendSupportEscalation($chatId,$history,true);
+            sendSupportEscalation($chatId,$history,true,"No se detectó el titular");
             return true;
         }
         $expNorm = normalizeNameSimple($expectedHolder);
@@ -761,20 +778,20 @@ function handlePaymentCapture($chatId,$messageData,&$history){
         }
         if($okTokens < max(1,count($expTokens)-1)){
             // Es un comprobante pero el titular no coincide, redirigir al WhatsApp
-            sendSupportEscalation($chatId,$history,true);
+            sendSupportEscalation($chatId,$history,true,"El titular no coincide");
             return true;
         }
     }
     $amount = trim((string)($analysis['amount'] ?? ''));
     if($amount===''){
         // Es un comprobante pero falta el monto, redirigir al WhatsApp
-        sendSupportEscalation($chatId,$history,true);
+        sendSupportEscalation($chatId,$history,true,"No se detectó el monto");
         return true;
     }
     $date = trim((string)($analysis['date'] ?? ''));
     if($date===''){
         // Es un comprobante pero falta la fecha, redirigir al WhatsApp
-        sendSupportEscalation($chatId,$history,true);
+        sendSupportEscalation($chatId,$history,true,"No se detectó la fecha");
         return true;
     }
     sendAndRemember($chatId,$DELIVERY_INFO,$history);
