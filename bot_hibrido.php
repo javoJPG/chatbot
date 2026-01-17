@@ -103,19 +103,17 @@ $SERVICES = [
     ]
 ];
 
-$PAYMENT_INFO = "💳 *MEDIOS DE PAGO*\n\n🩵 *NEQUI:* 3207702142 (Hernan Ceballos)\n🏦 *DAVIPLATA:* 3218474247 (Johan Rondon)\n🏦 *Ahorros Bancolombia:* 05900012119 (Johan Javier Rondon)\n\n📍 *Importante:* envía captura del pago por aquí";
+$PAYMENT_INFO = "💳 *MEDIOS DE PAGO*\n\n🔑 *LLAVE BRE-B:* @johan3272\n🏦 *DAVIPLATA:* 3218474247 (Johan Rondon)\n🏦 *Ahorros Bancolombia:* 05900012119 (Johan Javier Rondon)\n\n📍 *Importante:* envía captura del pago por aquí";
 $ALLOWED_ACCOUNTS = [
-    ['method'=>'NEQUI','number'=>'3207702142'],
     ['method'=>'DAVIPLATA','number'=>'3218474247'],
     ['method'=>'BANCOLOMBIA','number'=>'05900012119'],
-    ['method'=>'LLAVE_BREVE','gmail'=>'johanjavier654@gmail.com'],
+    ['method'=>'LLAVE_BRE_B','handle'=>'@johan3272'],
 ];
 $MAX_DAYS_SINCE_PAYMENT = (int) (getenv('MAX_DAYS_SIN_PAYMENT') ?: 1);
 $ACCOUNT_HOLDERS = [
-    'NEQUI' => 'Hernan Ceballos',
     'DAVIPLATA' => 'Johan Rondon',
     'BANCOLOMBIA' => 'Johan Javier Rondon',
-    'LLAVE_BREVE' => 'Johanjavier654@gmail.com',
+    'LLAVE_BRE_B' => 'Johan Javier Rondon Orozco',
 ];
 $DELIVERY_INFO = "✅ ¡Perfecto! Tu comprobante fue validado correctamente.\n\n📦 Para recibir tu servicio, escríbele a nuestro número de entregas:\n\n👉 WhatsApp: +57 324 493 0475\n🔗 O presiona aquí: https://wa.me/573244930475\n\n📋 Envíale:\n• La captura del pago\n• Tu nombre completo\n\n¡Gracias por tu compra! 🎉";
 
@@ -256,7 +254,10 @@ function detectHolderQuery($textLower){
            str_contains($textLower,'propietario') ||
            str_contains($textLower,'cuenta de banco') ||
            str_contains($textLower,'cuenta bancaria') ||
-           str_contains($textLower,'conectada');
+           str_contains($textLower,'conectada') ||
+           str_contains($textLower,'llave') ||
+           str_contains($textLower,'bre-b') ||
+           str_contains($textLower,'bre b');
 }
 
 function detectTrustQuery($textLower){
@@ -303,11 +304,11 @@ function buildHolderMessage($textLower){
     global $ACCOUNT_HOLDERS;
     $parts=[];
     $all = true;
-    if(str_contains($textLower,'nequi')){ $parts[]="El Nequi está a nombre de *{$ACCOUNT_HOLDERS['NEQUI']}*."; $all=false; }
+    if(str_contains($textLower,'llave') || str_contains($textLower,'bre-b') || str_contains($textLower,'bre b')){ $parts[]="La Llave Bre-B está a nombre de *{$ACCOUNT_HOLDERS['LLAVE_BRE_B']}*."; $all=false; }
     if(str_contains($textLower,'daviplata')){ $parts[]="Daviplata está a nombre de *{$ACCOUNT_HOLDERS['DAVIPLATA']}*."; $all=false; }
     if(str_contains($textLower,'bancolombia') || str_contains($textLower,'cuenta de ahorro') || str_contains($textLower,'ahorro')){ $parts[]="La cuenta Bancolombia está a nombre de *{$ACCOUNT_HOLDERS['BANCOLOMBIA']}*."; $all=false; }
     if($all){
-        $parts[]="El Nequi está a nombre de *{$ACCOUNT_HOLDERS['NEQUI']}*.";
+        $parts[]="La Llave Bre-B está a nombre de *{$ACCOUNT_HOLDERS['LLAVE_BRE_B']}*.";
         $parts[]="Daviplata está a nombre de *{$ACCOUNT_HOLDERS['DAVIPLATA']}*.";
         $parts[]="La cuenta Bancolombia está a nombre de *{$ACCOUNT_HOLDERS['BANCOLOMBIA']}*.";
     }
@@ -354,7 +355,7 @@ function assistantSentPaymentInfo($history){
     foreach(array_reverse($history) as $entry){
         if(($entry['role'] ?? '') === 'assistant'){
             $text = mb_strtolower($entry['content'] ?? '');
-            if(str_contains($text,'nequi') || str_contains($text,'daviplata') || str_contains($text,'ahorros bancolombia')){
+            if(str_contains($text,'llave bre-b') || str_contains($text,'daviplata') || str_contains($text,'ahorros bancolombia')){
                 return true;
             }
         }
@@ -376,10 +377,10 @@ function assistantSentPlans($history){
 
 function wantsPaymentDetails($textLower){
     $verbs = '(pasame|p[aá]same|env[ií]ame|manda(me)?|mandame|dame|reg[aá]lame|facil[ií]tame|podr[ií]as|podr[ií]as pasar|podes pasar|me puedes|me podr[ií]as|me das|me indicas|me dices|comp[aá]rteme|enviame|mu[eé]strame|pasa|p[aá]salo|p[aá]salo)';
-    if(preg_match('/'.$verbs.'.*(medios|datos|cuenta|n[uú]mero|numero|nequi|daviplata|bancolombia)/u', $textLower)) return true;
-    if(preg_match('/(medios?|datos?) de (pago|nequi|daviplata|bancolombia)/u', $textLower)) return true;
-    if(preg_match('/(cu[aá]l(es)? (es|son)|cuentame|cu[ée]ntame).*(medios|datos|cuenta|numero|n[uú]mero|nequi|daviplata|bancolombia)/u', $textLower)) return true;
-    if(preg_match('/(n[uú]mero|numero) (de )?(cuenta|nequi|daviplata|bancolombia)/u', $textLower)) return true;
+    if(preg_match('/'.$verbs.'.*(medios|datos|cuenta|n[uú]mero|numero|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
+    if(preg_match('/(medios?|datos?) de (pago|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
+    if(preg_match('/(cu[aá]l(es)? (es|son)|cuentame|cu[ée]ntame).*(medios|datos|cuenta|numero|n[uú]mero|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
+    if(preg_match('/(n[uú]mero|numero) (de )?(cuenta|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
     if(str_contains($textLower,'medios de pago') || str_contains($textLower,'datos de pago')) return true;
     return false;
 }
@@ -903,7 +904,7 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     4. Si el tema NO es de streaming: responde breve y luego pregunta algo suave como: '¿Qué plan te interesa?' o '¿Te muestro los planes?'
     5. Si das un precio, cierra con una pregunta de pago (varía: '¿Te paso medios de pago?', '¿Te los envío?', '¿Quieres pagar ahora?').
     6. Si el usuario confirma pago o pide datos, ENVÍA LOS DATOS DE PAGO (arriba) y pide el comprobante.
-    7. Si preguntan por titulares de pago, responde con: nequi(Hernan Ceballos), daviplata(Johan Rondon), bancolombia(Johan Javier Rondon). No inventes otros.
+    7. Si preguntan por titulares de pago, responde con: llave bre-b(@johan3272), daviplata(Johan Rondon), bancolombia(Johan Javier Rondon). No inventes otros.
     
     MANEJO DE PREGUNTAS Y CONVERSACIONES:
     - PREGUNTAS DE CONFIANZA (ciudad, ubicación, estafadores, seguridad): Responde con EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación. Operamos desde Colombia, tenemos garantía de 30 días y años de experiencia. ¿Te muestro los planes disponibles?'
