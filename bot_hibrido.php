@@ -103,7 +103,7 @@ $SERVICES = [
     ]
 ];
 
-$PAYMENT_INFO = "💳 *MEDIO DE PAGO PRINCIPAL*\n\n🔑 *LLAVE BRE-B:* @johan3272 (Johan Javier Rondon Orozco)\n\n*¿Cómo pagar?*\n1) Abre tu app bancaria\n2) Busca 'Llave Bre-B' o 'Transferir por llave'\n3) Ingresa @johan3272\n4) Envía el valor y comparte la captura por aquí\n\n🏦 *Alternativos:* Daviplata 3218474247 (Johan Rondon) / Bancolombia 05900012119 (Johan Javier Rondon)\n\n📍 *Importante:* envía captura del pago por aquí";
+$PAYMENT_INFO = "💳 *MEDIOS DE PAGO*\n\n🔑 *LLAVE BRE-B:* @johan3272 (Johan Javier Rondon Orozco)\n🏦 *DAVIPLATA:* 3218474247 (Johan Rondon)\n🏦 *Ahorros Bancolombia:* 05900012119 (Johan Javier Rondon)\n\n📍 *Importante:* envía captura del pago por aquí";
 $ALLOWED_ACCOUNTS = [
     ['method'=>'DAVIPLATA','number'=>'3218474247'],
     ['method'=>'BANCOLOMBIA','number'=>'05900012119'],
@@ -381,9 +381,31 @@ function wantsPaymentDetails($textLower){
     if(preg_match('/(medios?|datos?) de (pago|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
     if(preg_match('/(cu[aá]l(es)? (es|son)|cuentame|cu[ée]ntame).*(medios|datos|cuenta|numero|n[uú]mero|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
     if(preg_match('/(n[uú]mero|numero) (de )?(cuenta|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
-    if(preg_match('/(c[oó]mo|como) (se )?paga(r)?|forma de pagar|manera de pagar|c[oó]mo te pago|como te pago|como pago/u', $textLower)) return true;
     if(str_contains($textLower,'medios de pago') || str_contains($textLower,'datos de pago')) return true;
     return false;
+}
+
+function wantsPaymentNumberOrNequi($textLower){
+    return preg_match('/(n[uú]mero|numero)/u', $textLower) ||
+           str_contains($textLower,'nequi');
+}
+
+function buildPaymentInfoMessage($textLower){
+    global $PAYMENT_INFO;
+    $needsSteps = wantsPaymentNumberOrNequi($textLower);
+    if(!$needsSteps){
+        return $PAYMENT_INFO;
+    }
+    $steps = "\n\n*¿Cómo pagar con Llave Bre-B?*\n" .
+             "1) Abre tu app bancaria\n" .
+             "2) Busca 'Llave Bre-B' o 'Transferir por llave'\n" .
+             "3) Ingresa @johan3272\n" .
+             "4) Envía el valor y comparte la captura por aquí";
+    $note = "";
+    if(str_contains($textLower,'nequi')){
+        $note = "\n\nNo manejamos Nequi en este momento. El método principal es la *Llave Bre-B*.";
+    }
+    return $PAYMENT_INFO . $steps . $note;
 }
 
 function detectServicesFromText($textLower, $SERVICES){
@@ -906,7 +928,7 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     5. Si das un precio, cierra con una pregunta de pago (varía: '¿Te paso medios de pago?', '¿Te los envío?', '¿Quieres pagar ahora?').
     6. Si el usuario confirma pago o pide datos, ENVÍA LOS DATOS DE PAGO (arriba) y pide el comprobante.
     7. Si preguntan por titulares de pago, responde con: llave bre-b(@johan3272, Johan Javier Rondon Orozco), daviplata(Johan Rondon), bancolombia(Johan Javier Rondon). No inventes otros.
-    8. Si preguntan *cómo pagar*, explica el paso a paso y aclara que el método principal es la Llave Bre-B.
+    8. Solo explica el paso a paso de pago si preguntan por el *número* o por *Nequi*.
     
     MANEJO DE PREGUNTAS Y CONVERSACIONES:
     - PREGUNTAS DE CONFIANZA (ciudad, ubicación, estafadores, seguridad): Responde con EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación. Operamos desde Colombia, tenemos garantía de 30 días y años de experiencia. ¿Te muestro los planes disponibles?'
@@ -1164,7 +1186,8 @@ if (isset($data['typeWebhook']) && $data['typeWebhook'] === 'incomingMessageRece
             sleepNatural(2); // Pausa natural
             sendAndRemember($chatId, "¡Claro que sí! Aquí tienes los datos 👇", $history);
             sleep(1);
-            sendAndRemember($chatId, $PAYMENT_INFO, $history);
+            $paymentMsg = buildPaymentInfoMessage($textLower);
+            sendAndRemember($chatId, $paymentMsg, $history);
         }
         exit;
     }
