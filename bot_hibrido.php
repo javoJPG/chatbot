@@ -103,7 +103,7 @@ $SERVICES = [
     ]
 ];
 
-$PAYMENT_INFO = "💳 *MEDIOS DE PAGO*\n\n🔑 *LLAVE BRE-B:* @johan3272\n🏦 *DAVIPLATA:* 3218474247 (Johan Rondon)\n🏦 *Ahorros Bancolombia:* 05900012119 (Johan Javier Rondon)\n\n📍 *Importante:* envía captura del pago por aquí";
+$PAYMENT_INFO = "💳 *MEDIO DE PAGO PRINCIPAL*\n\n🔑 *LLAVE BRE-B:* @johan3272 (Johan Javier Rondon Orozco)\n\n*¿Cómo pagar?*\n1) Abre tu app bancaria\n2) Busca 'Llave Bre-B' o 'Transferir por llave'\n3) Ingresa @johan3272\n4) Envía el valor y comparte la captura por aquí\n\n🏦 *Alternativos:* Daviplata 3218474247 (Johan Rondon) / Bancolombia 05900012119 (Johan Javier Rondon)\n\n📍 *Importante:* envía captura del pago por aquí";
 $ALLOWED_ACCOUNTS = [
     ['method'=>'DAVIPLATA','number'=>'3218474247'],
     ['method'=>'BANCOLOMBIA','number'=>'05900012119'],
@@ -381,6 +381,7 @@ function wantsPaymentDetails($textLower){
     if(preg_match('/(medios?|datos?) de (pago|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
     if(preg_match('/(cu[aá]l(es)? (es|son)|cuentame|cu[ée]ntame).*(medios|datos|cuenta|numero|n[uú]mero|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
     if(preg_match('/(n[uú]mero|numero) (de )?(cuenta|llave|bre-b|bre b|daviplata|bancolombia)/u', $textLower)) return true;
+    if(preg_match('/(c[oó]mo|como) (se )?paga(r)?|forma de pagar|manera de pagar|c[oó]mo te pago|como te pago|como pago/u', $textLower)) return true;
     if(str_contains($textLower,'medios de pago') || str_contains($textLower,'datos de pago')) return true;
     return false;
 }
@@ -904,7 +905,8 @@ function getAIResponse($userMessage, $contextPlans, $contextIndividuals, $chatHi
     4. Si el tema NO es de streaming: responde breve y luego pregunta algo suave como: '¿Qué plan te interesa?' o '¿Te muestro los planes?'
     5. Si das un precio, cierra con una pregunta de pago (varía: '¿Te paso medios de pago?', '¿Te los envío?', '¿Quieres pagar ahora?').
     6. Si el usuario confirma pago o pide datos, ENVÍA LOS DATOS DE PAGO (arriba) y pide el comprobante.
-    7. Si preguntan por titulares de pago, responde con: llave bre-b(@johan3272), daviplata(Johan Rondon), bancolombia(Johan Javier Rondon). No inventes otros.
+    7. Si preguntan por titulares de pago, responde con: llave bre-b(@johan3272, Johan Javier Rondon Orozco), daviplata(Johan Rondon), bancolombia(Johan Javier Rondon). No inventes otros.
+    8. Si preguntan *cómo pagar*, explica el paso a paso y aclara que el método principal es la Llave Bre-B.
     
     MANEJO DE PREGUNTAS Y CONVERSACIONES:
     - PREGUNTAS DE CONFIANZA (ciudad, ubicación, estafadores, seguridad): Responde con EMPATÍA y da información que genere confianza. Ejemplo: 'Entiendo tu preocupación. Operamos desde Colombia, tenemos garantía de 30 días y años de experiencia. ¿Te muestro los planes disponibles?'
